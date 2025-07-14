@@ -1,12 +1,12 @@
-torch==2.7.1
-transformers==4.47.1
-seqeval==1.2.2
-scikit-learn==1.6.0
-numpy==1.26.4
-tqdm==4.67.1
-torchcrf==1.1.0
-spacy>=3.8.7,<4.0.0
-streamlit==1.41.1
-click==8.1.8
-protobuf==5.29.2
+torch>=2.0.0,<2.5.0
+transformers>=4.40.0,<4.48.0
+seqeval>=1.2.2
+scikit-learn>=1.5.0,<1.7.0
+numpy>=1.24.0,<1.27.0
+tqdm>=4.65.0
+torchcrf>=1.1.0
+spacy>=3.7.0,<4.0.0
+streamlit>=1.35.0
+click>=8.0.0
+protobuf>=4.21.0,<6.0.0
 # Note: After installing spacy, run: python -m spacy download en_core_web_sm
