@@ -1,6 +1,28 @@
 import json
 import streamlit as st
 import re
+import os
+
+# Configure Streamlit for deployment
+st.set_page_config(
+    layout="wide",
+    page_title="NER Tagging Tool",
+    page_icon="📘"
+)
+
+# Add deployment-specific configurations
+if 'RENDER' in os.environ:
+    st.markdown("""
+    <style>
+    .stApp > header {
+        background-color: transparent;
+    }
+    .stApp {
+        margin-top: -80px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 try:
     import spacy
     SPACY_AVAILABLE = True
@@ -25,8 +47,8 @@ def load_nlp():
         st.error("🚨 **spaCy model 'en_core_web_sm' not found!**")
         st.error("Please install it by running:")
         st.code("python -m spacy download en_core_web_sm")
-        st.error("Or install it via pip:")
-        st.code("pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl")
+        if 'RENDER' in os.environ:
+            st.error("If you're seeing this on Render, the build command may have failed.")
         st.stop()
         return None
 
