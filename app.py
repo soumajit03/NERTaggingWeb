@@ -87,11 +87,25 @@ def tokenize_sentence(sentence):
 if "annotations" not in st.session_state:
     st.session_state.annotations = {}
 
+if "sentences" not in st.session_state:
+    st.session_state.sentences = []
+
 uploaded_file = st.file_uploader("Upload a .txt file", type=["txt"])
 
 if uploaded_file:
     text = uploaded_file.read().decode("utf-8")
     sentences = annotate_text(text)
+    
+    # Extract base filename without extension
+    base_filename = os.path.splitext(uploaded_file.name)[0]
+    
+    # Clear previous annotations when new file is uploaded
+    if "current_file_name" not in st.session_state or st.session_state.current_file_name != uploaded_file.name:
+        st.session_state.annotations = {}
+        st.session_state.current_file_name = uploaded_file.name
+        st.session_state.base_filename = base_filename
+    
+    st.session_state.sentences = sentences  # Store sentences in session state
     total_sentences = len(sentences)
 
     # Navigation controls
@@ -104,6 +118,10 @@ if uploaded_file:
     # Prepare previously selected tags or default "O"
     prev_annotations = st.session_state.annotations.get(sentence_index, [])
     default_tags = [ann[4] for ann in prev_annotations] if prev_annotations else ["O"] * len(tokens)
+    
+    # Ensure default_tags matches the number of tokens
+    if len(default_tags) != len(tokens):
+        default_tags = ["O"] * len(tokens)
 
     st.markdown("---")
     st.markdown(f"### Sentence: {current_sentence}")
@@ -115,8 +133,10 @@ if uploaded_file:
         with cols[0]:
             st.markdown(f"<div style='padding: 8px 0;'>{token.text}</div>", unsafe_allow_html=True)
         with cols[1]:
+            # Safe access to default_tags with bounds checking
+            default_tag = default_tags[i] if i < len(default_tags) else "O"
             tag = st.selectbox(
-                "", TAGS, key=f"{sentence_index}-{i}", index=TAGS.index(default_tags[i]), label_visibility="collapsed"
+                "", TAGS, key=f"{sentence_index}-{i}", index=TAGS.index(default_tag), label_visibility="collapsed"
             )
             tagged.append([
                 token.idx,
@@ -134,10 +154,42 @@ if uploaded_file:
     if st.button("📦 Export All Annotations to JSON"):
         final_json = {"annotations": []}
         for sent_idx, entities in sorted(st.session_state.annotations.items()):
-            sentence = sentences[sent_idx]
-            final_json["annotations"].append([sentence, {"entities": entities}])
+            # Use sentences from session state and add bounds checking
+            if sent_idx < len(st.session_state.sentences):
+                sentence = st.session_state.sentences[sent_idx]
+                final_json["annotations"].append([sentence, {"entities": entities}])
+            # Remove the warning message since we'll silently skip invalid indices
 
-        export_path = "all_tagged_sentences.json"
+        export_path = f"{st.session_state.base_filename}.json"
+        with open(export_path, "w") as f:
+            json.dump(final_json, f, indent=2)
+
+        with open(export_path, "rb") as f:
+            st.download_button(
+                label="⬇️ Download Full JSON",
+                data=f,
+                file_name=export_path,
+                mime="application/json"
+            )
+
+# Add export functionality even when no file is currently uploaded
+elif st.session_state.annotations:
+    st.markdown("---")
+    st.markdown("### Previous Annotations Available")
+    st.info(f"You have {len(st.session_state.annotations)} annotated sentences stored.")
+    
+    if st.button("📦 Export All Annotations to JSON"):
+        final_json = {"annotations": []}
+        for sent_idx, entities in sorted(st.session_state.annotations.items()):
+            # Use sentences from session state and add bounds checking
+            if sent_idx < len(st.session_state.sentences):
+                sentence = st.session_state.sentences[sent_idx]
+                final_json["annotations"].append([sentence, {"entities": entities}])
+            # Remove the warning message since we'll silently skip invalid indices
+
+        # Use stored base filename or fallback to default
+        filename = st.session_state.get('base_filename', 'all_tagged_sentences')
+        export_path = f"{filename}.json"
         with open(export_path, "w") as f:
             json.dump(final_json, f, indent=2)
 
